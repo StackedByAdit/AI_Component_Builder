@@ -14,7 +14,6 @@ export const App = () => {
   const [galleryState] = useState<GalleryState>({ status: 'idle' });
   const [isSaving] = useState(false);
 
-  // auto save key
   useEffect(() => {
     localStorage.setItem('openai_api_key', apiKey);
   }, [apiKey]);
@@ -22,7 +21,7 @@ export const App = () => {
 
   const handleGenerate = useCallback(
     async (prompt: string) => {
-      console.log("BUTTON CLICKED");
+      // console.log("BUTTON CLICKED");
       if (!apiKey) {
         setGenerationState({
           status: 'error',
@@ -33,12 +32,12 @@ export const App = () => {
 
       setGenerationState({ status: 'loading' });
 
-      console.log(apiKey);
+      // console.log(apiKey);
 
 
       try {
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
           {
             method: 'POST',
             headers: {
@@ -77,7 +76,6 @@ ${prompt}
 
         console.log("FULL GEMINI RESPONSE:", data);
 
-        // ✅ robust extraction
         const raw =
           data?.candidates
             ?.flatMap((c: any) => c.content?.parts || [])
@@ -117,7 +115,7 @@ ${prompt}
 
   return (
     <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
-      {/* Sidebar */}
+     
       <Sidebar
         onGenerate={handleGenerate}
         isLoading={generationState.status === 'loading'}
@@ -125,7 +123,7 @@ ${prompt}
         onApiKeySave={setApiKey}
       />
 
-      {/* Center */}
+
       <div className="flex-1 flex items-center justify-center p-8">
         {generationState.status === 'idle' && (
           <p className="text-gray-500">
@@ -159,7 +157,6 @@ ${prompt}
         )}
       </div>
 
-      {/* Right sidebar */}
       <aside className="w-48 bg-gray-900 border-l border-gray-800 flex items-center justify-center">
         <p className="text-xs text-gray-500">
           Gallery - Class 5
