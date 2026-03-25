@@ -3,6 +3,8 @@ import type { GenerationState, GalleryState } from './types';
 import { Sidebar } from './components/prompt-input';
 import { cleanGeneratedCode } from './components/codeCleaner';
 
+import { PreviewPanel } from './preview-panel';
+
 export const App = () => {
   const [apiKey, setApiKey] = useState(
     () => localStorage.getItem('openai_api_key') ?? ''
@@ -115,7 +117,7 @@ ${prompt}
 
   return (
     <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
-     
+
       <Sidebar
         onGenerate={handleGenerate}
         isLoading={generationState.status === 'loading'}
@@ -123,7 +125,13 @@ ${prompt}
         onApiKeySave={setApiKey}
       />
 
+      <PreviewPanel
+        state={generationState}
+        onSave={() => console.log('Save - coming in Class 5')}
+        isSaving={false}
+      />
 
+{/* 
       <div className="flex-1 flex items-center justify-center p-8">
         {generationState.status === 'idle' && (
           <p className="text-gray-500">
@@ -150,18 +158,18 @@ ${prompt}
               Generated code:
             </p>
 
-            <pre className="bg-gray-900 p-4 rounded-lg text-sm text-green-400 overflow-auto max-h-96">
+            <pre className="bg-gray-900 p-4 rounded-lg text-sm text-green-400 overflow-auto max-h-120">
               {generationState.code}
             </pre>
           </div>
         )}
-      </div>
+      </div> */}
 
-      <aside className="w-48 bg-gray-900 border-l border-gray-800 flex items-center justify-center">
+      {/* <aside className="w-48 bg-gray-900 border-l border-gray-800 flex items-center justify-center">
         <p className="text-xs text-gray-500">
           Gallery - Class 5
         </p>
-      </aside>
+      </aside> */}
     </div>
   );
-};
+};  
