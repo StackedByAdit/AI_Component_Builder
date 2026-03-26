@@ -165,24 +165,6 @@ const CodeBlock = ({ code }: { code: string }) => (
   </div>
 );
 
-const CopyButton = ({ code }: { code: string }) => {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [code]);
-
-  return (
-    <button
-      onClick={handleCopy}
-      className="text-xs px-3 py-1.5 bg-gray-800 text-gray-300 rounded-lg border border-gray-700 hover:text-white hover:border-gray-600 transition-colors"
-    >
-      {copied ? 'Copied!' : 'Copy Code'}
-    </button>
-  );
-};
 
 const TabButton = ({
   active,
