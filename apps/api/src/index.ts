@@ -7,6 +7,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { authRouter } from './routes/auth.js';
 import { componentsRouter } from './routes/components.js';
+import { generateRouter } from './routes/generate.js';
 
 const app = new Hono();
 
@@ -16,6 +17,7 @@ app.use('*', cors({ origin: 'http://localhost:5173' }));
 app.get('/health', (c) => c.json({ ok: true }));
 app.route('/auth', authRouter);
 app.route('/components', componentsRouter);
+app.route('/generate', generateRouter);
 
 const PORT = Number(process.env.PORT) || 3001;
 
