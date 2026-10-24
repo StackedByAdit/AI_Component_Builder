@@ -177,6 +177,8 @@ describe('Frontend Critical Behaviour', () => {
       assert.ok(html.includes('placeholder="Password"'));
       assert.ok(html.includes("Don&#x27;t have an account?") || html.includes("Don't have an account?"));
       assert.ok(html.includes('Sign up'));
+      assert.ok(html.includes('aria-label="Show password"'));
+      assert.ok(!html.includes('placeholder="Confirm Password"'));
     });
 
     it('renders signup mode with appropriate headings and controls', () => {
@@ -189,8 +191,11 @@ describe('Frontend Critical Behaviour', () => {
       assert.ok(html.includes('Create Account'));
       assert.ok(html.includes('placeholder="Email"'));
       assert.ok(html.includes('placeholder="Password"'));
+      assert.ok(html.includes('placeholder="Confirm Password"'));
+      assert.ok(html.includes('At least 8 characters'));
       assert.ok(html.includes('Already have an account?'));
       assert.ok(html.includes('Sign in'));
+      assert.ok(html.includes('aria-label="Show password"'));
     });
   });
 
