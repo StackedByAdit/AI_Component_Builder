@@ -39,9 +39,22 @@ export interface User {
 }
 
 // api request/response shapes
-export interface SignupRequest { email: string; password: string; }
-export interface SigninRequest { email: string; password: string; }
-export interface AuthResponse  { token: string; user: User; }
+export interface SignupRequest {
+  email: string;
+  password: string;
+  confirmPassword?: string;
+}
+export interface SigninRequest {
+  email: string;
+  password: string;
+}
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+export interface UserResponse {
+  user: User;
+}
 export interface GenerateRequest  { prompt: string; }
 export interface GenerateResponse { code: string; }
 export interface SaveComponentRequest { prompt: string; code: string; title: string; }

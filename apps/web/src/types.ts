@@ -8,6 +8,7 @@ export type {
   SignupRequest,
   SigninRequest,
   AuthResponse,
+  UserResponse,
   GenerateRequest,
   GenerateResponse,
   SaveComponentRequest,
