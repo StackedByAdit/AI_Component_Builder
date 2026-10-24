@@ -266,4 +266,47 @@ describe('Authentication & Authorization', () => {
       assert.equal(hasUserAComp, false);
     });
   });
+
+  describe('JWT Secret Safeguards', () => {
+    it('throws an error if JWT_SECRET is unset in production environment', async () => {
+      const { getJwtSecret } = await import('../src/lib/jwt.js');
+      const originalNodeEnv = process.env.NODE_ENV;
+      const originalJwtSecret = process.env.JWT_SECRET;
+
+      try {
+        process.env.NODE_ENV = 'production';
+        delete process.env.JWT_SECRET;
+        assert.throws(
+          () => getJwtSecret(),
+          /JWT_SECRET environment variable is required in production/
+        );
+      } finally {
+        process.env.NODE_ENV = originalNodeEnv;
+        if (originalJwtSecret !== undefined) {
+          process.env.JWT_SECRET = originalJwtSecret;
+        } else {
+          delete process.env.JWT_SECRET;
+        }
+      }
+    });
+
+    it('returns development secret when not in production', async () => {
+      const { getJwtSecret } = await import('../src/lib/jwt.js');
+      const originalNodeEnv = process.env.NODE_ENV;
+      const originalJwtSecret = process.env.JWT_SECRET;
+
+      try {
+        process.env.NODE_ENV = 'development';
+        delete process.env.JWT_SECRET;
+        assert.equal(getJwtSecret(), 'dev_secret');
+      } finally {
+        process.env.NODE_ENV = originalNodeEnv;
+        if (originalJwtSecret !== undefined) {
+          process.env.JWT_SECRET = originalJwtSecret;
+        } else {
+          delete process.env.JWT_SECRET;
+        }
+      }
+    });
+  });
 });

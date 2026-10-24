@@ -13,10 +13,24 @@ import { authRouter } from './routes/auth.js';
 import { componentsRouter } from './routes/components.js';
 import { generateRouter } from './routes/generate.js';
 
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
+  : ['http://localhost:5173'];
+
 const app = new Hono();
 
 app.use('*', logger());
-app.use('*', cors({ origin: 'http://localhost:5173' }));
+app.use(
+  '*',
+  cors({
+    origin: (origin) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return origin || allowedOrigins[0];
+      }
+      return null;
+    },
+  })
+);
 
 app.get('/health', (c) => c.json({ ok: true }));
 app.route('/auth', authRouter);
