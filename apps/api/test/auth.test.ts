@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import app from '../src/index.js';
 import { db } from '../src/db.js';
 import { signToken } from '../src/lib/jwt.js';
+import { _resetRateLimitsForTesting } from '../src/routes/auth.js';
 
 describe('Authentication & Authorization', () => {
   const testEmail = `test-auth-${Date.now()}@example.com`;
@@ -79,6 +80,66 @@ describe('Authentication & Authorization', () => {
 
       assert.equal(res.status, 400);
     });
+
+    it('rejects invalid email format with 400', async () => {
+      const res = await app.request('/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'not-an-email', password: 'ValidPassword123!' }),
+      });
+
+      assert.equal(res.status, 400);
+      const data = await res.json();
+      assert.equal(data.error, 'Valid email is required');
+    });
+
+    it('rejects password shorter than 8 characters with 400', async () => {
+      const res = await app.request('/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: `valid-${Date.now()}@example.com`, password: 'short' }),
+      });
+
+      assert.equal(res.status, 400);
+      const data = await res.json();
+      assert.equal(data.error, 'Password must be at least 8 characters');
+    });
+
+    it('rejects registration when confirmPassword does not match with 400', async () => {
+      const res = await app.request('/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: `valid-${Date.now()}@example.com`,
+          password: 'ValidPassword123!',
+          confirmPassword: 'DifferentPassword123!',
+        }),
+      });
+
+      assert.equal(res.status, 400);
+      const data = await res.json();
+      assert.equal(data.error, 'Passwords do not match');
+    });
+
+    it('never stores password in plaintext and never leaks password hash in response', async () => {
+      const uniqueEmail = `hash-check-${Date.now()}@example.com`;
+      const plainPassword = 'SuperSecret123!';
+
+      const res = await app.request('/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: uniqueEmail, password: plainPassword }),
+      });
+
+      assert.equal(res.status, 201);
+      const data = await res.json();
+      assert.equal(data.user.password, undefined);
+
+      const dbUser = await db.user.findUnique({ where: { email: uniqueEmail } });
+      assert.ok(dbUser);
+      assert.notEqual(dbUser.password, plainPassword);
+      assert.ok(dbUser.password.startsWith('$2')); // bcrypt hash signature
+    });
   });
 
   describe('POST /auth/signin', () => {
@@ -129,6 +190,83 @@ describe('Authentication & Authorization', () => {
       assert.equal(res.status, 400);
       const data = await res.json();
       assert.equal(data.error, 'Email and password are required');
+    });
+
+    it('triggers 429 rate limit after repeated failed login attempts', async () => {
+      _resetRateLimitsForTesting();
+      const targetEmail = `brute-test-${Date.now()}@example.com`;
+
+      for (let i = 0; i < 5; i++) {
+        const res = await app.request('/auth/signin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '192.168.1.100' },
+          body: JSON.stringify({ email: targetEmail, password: 'WrongPassword' }),
+        });
+        assert.equal(res.status, 401);
+      }
+
+      // 6th attempt must be rate limited with 429
+      const blockedRes = await app.request('/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '192.168.1.100' },
+        body: JSON.stringify({ email: targetEmail, password: 'WrongPassword' }),
+      });
+
+      assert.equal(blockedRes.status, 429);
+      const data = await blockedRes.json();
+      assert.equal(data.error, 'Too many failed login attempts. Please try again later.');
+
+      _resetRateLimitsForTesting();
+    });
+  });
+
+  describe('GET /auth/me & Session Invalidation', () => {
+    it('returns authenticated user profile on GET /auth/me', async () => {
+      assert.ok(testUserToken);
+      const res = await app.request('/auth/me', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${testUserToken}` },
+      });
+
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.ok(data.user);
+      assert.equal(data.user.email, testEmail);
+      assert.equal(data.user.id, testUserId);
+      assert.equal(data.user.password, undefined);
+    });
+
+    it('rejects GET /auth/me without authorization header with 401', async () => {
+      const res = await app.request('/auth/me', { method: 'GET' });
+      assert.equal(res.status, 401);
+    });
+
+    it('rejects GET /auth/me with invalid or expired token with 401', async () => {
+      const res = await app.request('/auth/me', {
+        method: 'GET',
+        headers: { Authorization: 'Bearer invalid.token.signature' },
+      });
+      assert.equal(res.status, 401);
+    });
+
+    it('successfully handles logout endpoint on POST /auth/signout', async () => {
+      const res = await app.request('/auth/signout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${testUserToken}` },
+      });
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.equal(data.ok, true);
+    });
+
+    it('successfully handles logout endpoint on POST /auth/logout', async () => {
+      const res = await app.request('/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${testUserToken}` },
+      });
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      assert.equal(data.ok, true);
     });
   });
 
