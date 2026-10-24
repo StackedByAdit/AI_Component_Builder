@@ -15,3 +15,15 @@ export type {
   PreviewPanelProps,
   GalleryGridProps,
 } from '@repo/types';
+
+import type { ComponentDocument, PromptInputProps } from '@repo/types';
+
+export interface SidebarProps extends PromptInputProps {
+  savedComponents?: ComponentDocument[];
+  isLoadingSaved?: boolean;
+  savedError?: string | null;
+  onSelectComponent?: (comp: ComponentDocument) => void;
+  onDeleteComponent?: (id: string) => void;
+  onRefreshSaved?: () => void;
+  selectedComponentId?: string | null;
+}
