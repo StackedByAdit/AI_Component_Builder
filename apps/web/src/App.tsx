@@ -80,8 +80,8 @@ ${prompt}
 
         const raw =
           data?.candidates
-            ?.flatMap((c: any) => c.content?.parts || [])
-            ?.map((p: any) => p.text || '')
+            ?.flatMap((c: any ) => c.content?.parts || [])
+            ?.map((p: any ) => p.text || '')
             ?.join('\n') || '';
 
         if (!raw) {
@@ -172,4 +172,4 @@ ${prompt}
       </aside> */}
     </div>
   );
-};  
+};    
