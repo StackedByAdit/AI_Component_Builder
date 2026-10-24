@@ -57,6 +57,7 @@ export interface PreviewPanelProps {
   state: GenerationState;
   onSave: () => void;
   isSaving: boolean;
+  isSaved?: boolean;
 }
 
 export interface GalleryGridProps {

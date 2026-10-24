@@ -1,23 +1,84 @@
-import { useState, useCallback, useRef } from 'react';
-import type { GenerationState } from './types';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import type { GenerationState, ComponentDocument } from './types';
 import { Sidebar } from './components/prompt-input';
 import { PreviewPanel } from './preview-panel';
 import { useAuth } from './context/auth';
 import { AuthForm } from './components/auth-form';
+import { API_BASE_URL } from './lib/api';
 
 export const App = () => {
   const { auth } = useAuth();
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [generationState, setGenerationState] = useState<GenerationState>({ status: 'idle' });
   const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savedComponents, setSavedComponents] = useState<ComponentDocument[]>([]);
+  const [isLoadingSaved, setIsLoadingSaved] = useState(false);
+  const [savedError, setSavedError] = useState<string | null>(null);
+  const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
+
   const abortControllerRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef<number>(0);
+  const isSavingRef = useRef<boolean>(false);
+
+  const fetchSavedComponents = useCallback(async () => {
+    if (auth.status !== 'authenticated') return;
+    setIsLoadingSaved(true);
+    setSavedError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/components`, {
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+        },
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Failed to fetch components (${response.status})`);
+      }
+      const data = await response.json();
+      setSavedComponents(Array.isArray(data) ? data : []);
+    } catch (err: unknown) {
+      setSavedError(err instanceof Error ? err.message : 'Failed to load saved components');
+    } finally {
+      setIsLoadingSaved(false);
+    }
+  }, [auth]);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (auth.status === 'authenticated') {
+      fetch(`${API_BASE_URL}/components`, {
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+        },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          if (isMounted) {
+            setSavedComponents(Array.isArray(data) ? data : []);
+          }
+        })
+        .catch((err: unknown) => {
+          if (isMounted) {
+            setSavedError(err instanceof Error ? err.message : 'Failed to load saved components');
+          }
+        });
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [auth]);
 
   const handleCancel = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
+    setIsSaved(false);
     setGenerationState({ status: 'idle' });
   }, []);
 
@@ -25,6 +86,8 @@ export const App = () => {
     async (prompt: string) => {
       if (auth.status !== 'authenticated') return;
 
+      setSelectedComponentId(null);
+      setIsSaved(false);
       // Abort previous in-flight request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -36,11 +99,11 @@ export const App = () => {
       setGenerationState({ status: 'loading' });
 
       try {
-        const response = await fetch('http://localhost:3001/generate', {
+        const response = await fetch(`${API_BASE_URL}/generate`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${auth.token}`,
+            Authorization: `Bearer ${auth.token}`,
           },
           body: JSON.stringify({ prompt }),
           signal: controller.signal,
@@ -83,14 +146,22 @@ export const App = () => {
   );
 
   const handleSave = useCallback(async () => {
-    if (generationState.status !== 'success' || auth.status !== 'authenticated') return;
+    if (
+      generationState.status !== 'success' ||
+      auth.status !== 'authenticated' ||
+      isSavingRef.current ||
+      isSaved
+    ) {
+      return;
+    }
+    isSavingRef.current = true;
     setIsSaving(true);
     try {
-      await fetch('http://localhost:3001/components', {
+      const response = await fetch(`${API_BASE_URL}/components`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${auth.token}`,
+          Authorization: `Bearer ${auth.token}`,
         },
         body: JSON.stringify({
           prompt: generationState.prompt,
@@ -98,10 +169,59 @@ export const App = () => {
           title: generationState.prompt.slice(0, 60),
         }),
       });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to save component');
+      }
+
+      const saved = await response.json();
+      setSelectedComponentId(saved.id);
+      setIsSaved(true);
+      await fetchSavedComponents();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to save component');
     } finally {
+      isSavingRef.current = false;
       setIsSaving(false);
     }
-  }, [generationState, auth]);
+  }, [generationState, auth, isSaved, fetchSavedComponents]);
+
+  const handleDeleteComponent = useCallback(
+    async (id: string) => {
+      if (auth.status !== 'authenticated') return;
+      try {
+        const response = await fetch(`${API_BASE_URL}/components/${id}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+          },
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || 'Failed to delete component');
+        }
+        setSavedComponents((prev) => prev.filter((c) => c.id !== id));
+        if (selectedComponentId === id) {
+          setSelectedComponentId(null);
+          setIsSaved(false);
+        }
+      } catch (err: unknown) {
+        alert(err instanceof Error ? err.message : 'Failed to delete component');
+      }
+    },
+    [auth, selectedComponentId],
+  );
+
+  const handleSelectComponent = useCallback((comp: ComponentDocument) => {
+    setSelectedComponentId(comp.id);
+    setIsSaved(true);
+    setGenerationState({
+      status: 'success',
+      code: comp.code,
+      prompt: comp.prompt,
+    });
+  }, []);
 
   if (auth.status === 'idle' || auth.status === 'loading' || auth.status === 'error') {
     return (
@@ -118,12 +238,20 @@ export const App = () => {
         onGenerate={handleGenerate}
         onCancel={handleCancel}
         isLoading={generationState.status === 'loading'}
+        savedComponents={savedComponents}
+        isLoadingSaved={isLoadingSaved}
+        savedError={savedError}
+        onSelectComponent={handleSelectComponent}
+        onDeleteComponent={handleDeleteComponent}
+        onRefreshSaved={fetchSavedComponents}
+        selectedComponentId={selectedComponentId}
       />
 
       <PreviewPanel
         state={generationState}
         onSave={handleSave}
         isSaving={isSaving}
+        isSaved={isSaved}
       />
     </div>
   );
