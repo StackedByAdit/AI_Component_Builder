@@ -3,8 +3,9 @@
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import type { AuthState, SignupRequest, SigninRequest } from '@repo/types';
+import { API_BASE_URL } from '../lib/api';
 
-const API = 'http://localhost:3001';
+const API = API_BASE_URL;
 
 interface AuthContextValue {
   auth: AuthState;
