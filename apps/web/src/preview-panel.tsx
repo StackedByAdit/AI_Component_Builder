@@ -4,49 +4,21 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Highlight, themes } from 'prism-react-renderer';
 import type { PreviewPanelProps } from './types';
-
-// builds a sandboxed html document that renders jsx with react 18, babel, and tailwind via cdn
-const buildSrcdoc = (jsxCode: string): string => `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { margin: 0; padding: 16px; font-family: system-ui, -apple-system, sans-serif; background: white; }
-    .error-display { color: #ef4444; padding: 16px; font-family: monospace; font-size: 14px; white-space: pre-wrap; }
-  </style>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="text/babel">
-    try {
-      const Component = () => (
-        ${jsxCode}
-      );
-      ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Component));
-    } catch (err) {
-      document.getElementById('root').innerHTML = '<div class="error-display">Render error: ' + err.message + '</div>';
-    }
-  </script>
-  <script>
-    window.onerror = function(msg) {
-      document.getElementById('root').innerHTML = '<div class="error-display">Error: ' + msg + '</div>';
-    };
-  </script>
-</body>
-</html>`;
+import {
+  PREVIEW_SANDBOX_PERMISSIONS,
+  buildSrcdoc,
+} from './lib/preview-sandbox';
 
 export const PreviewPanel = ({ state, onSave, isSaving }: PreviewPanelProps) => {
   const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
+  const [previewKey, setPreviewKey] = useState(0);
+
+  const handleReload = useCallback(() => {
+    setPreviewKey((k) => k + 1);
+  }, []);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-   
       <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-800">
         <div className="flex items-center gap-3">
           <div className="flex gap-1">
@@ -66,6 +38,15 @@ export const PreviewPanel = ({ state, onSave, isSaving }: PreviewPanelProps) => 
         <div className="flex items-center gap-2">
           {state.status === 'success' && (
             <>
+              {activeTab === 'preview' && (
+                <button
+                  onClick={handleReload}
+                  title="Reload preview iframe"
+                  className="text-xs px-2.5 py-1.5 bg-gray-800 text-gray-300 rounded-lg border border-gray-700 hover:text-white hover:border-gray-600 transition-colors"
+                >
+                  Reload
+                </button>
+              )}
               <CopyButton code={state.code} />
               <button
                 onClick={onSave}
@@ -85,7 +66,7 @@ export const PreviewPanel = ({ state, onSave, isSaving }: PreviewPanelProps) => 
         {state.status === 'error' && <ErrorState message={state.message} />}
         {state.status === 'success' && (
           activeTab === 'preview' ? (
-            <WebPreview code={state.code} />
+            <WebPreview code={state.code} reloadKey={previewKey} />
           ) : (
             <CodeBlock code={state.code} />
           )
@@ -127,15 +108,15 @@ const ErrorState = ({ message }: { message: string }) => (
   </div>
 );
 
-    
-const WebPreview = ({ code }: { code: string }) => {
+const WebPreview = ({ code, reloadKey }: { code: string; reloadKey?: number }) => {
   const srcdoc = useMemo(() => buildSrcdoc(code), [code]);
 
   return (
     <div className="w-full h-full rounded-xl overflow-hidden border border-gray-800 bg-white">
       <iframe
+        key={reloadKey ?? 0}
         srcDoc={srcdoc}
-        sandbox="allow-scripts"
+        sandbox={PREVIEW_SANDBOX_PERMISSIONS}
         title="Component Preview"
         className="w-full h-full border-0"
       />
