@@ -58,6 +58,7 @@ export const buildInitialPrompt = (userPrompt: string): string => {
     'You are an expert React UI generator.',
     'Return ONLY a valid JSX element styled with Tailwind CSS.',
     'The output must be a single root JSX element starting with a tag like <div and ending with its matching closing tag.',
+    'Format the JSX with proper indentation and newlines so it is clean, readable, and multiline.',
     'Do NOT include import statements.',
     'Do NOT include export statements.',
     'Do NOT wrap the output in a function, class, or const component declaration.',
@@ -79,6 +80,7 @@ export const buildRepairPrompt = (userPrompt: string, faultyCode: string, errors
     '',
     'Fix the errors and return ONLY the corrected, valid JSX element styled with Tailwind CSS.',
     'Must start with a root opening tag (e.g. <div) and end with its closing tag.',
+    'Format the JSX with proper indentation and clean newlines.',
     'Do NOT include imports, exports, or component wrapper functions.',
     '',
     `Original Request: ${userPrompt}`,
@@ -118,7 +120,7 @@ export const callGeminiApi = async ({
           jsx: {
             type: 'STRING',
             description:
-              'Pure valid JSX component starting with a root JSX element (like <div ...) and ending with its closing tag.',
+              'Pure valid JSX component starting with a root JSX element (like <div ...) and ending with its closing tag, formatted with clean newlines and indentation.',
           },
         },
         required: ['jsx'],

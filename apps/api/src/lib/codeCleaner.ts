@@ -1,5 +1,44 @@
 // apps/api/src/lib/codeCleaner.ts
-// purpose: robust extraction and cleanup of pure JSX from AI responses
+// purpose: robust extraction, cleanup, and formatting of pure JSX from AI responses
+
+/**
+ * Pretty formats JSX code with clean indentation and newlines if the AI returned single-line JSX.
+ */
+export const formatJsxCode = (code: string): string => {
+  if (!code || typeof code !== 'string') return '';
+  const trimmed = code.trim();
+
+  // If already multiline with at least 4 lines, keep it as is
+  if (trimmed.split('\n').length > 4) {
+    return trimmed;
+  }
+
+  let formatted = '';
+  let indentLevel = 0;
+  const indent = '  ';
+
+  // Tokenize by JSX tags (<tag ...>, </tag>, <tag ... />) while keeping text/expressions
+  const tokens = trimmed.split(/(<\/?[a-zA-Z0-9_.:$-]+(?:\s+[^>]*?)?\/?>)/g).filter(Boolean);
+
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i].trim();
+    if (!token) continue;
+
+    if (token.startsWith('</')) {
+      indentLevel = Math.max(0, indentLevel - 1);
+      formatted += (formatted ? '\n' : '') + indent.repeat(indentLevel) + token;
+    } else if (token.startsWith('<') && token.endsWith('/>')) {
+      formatted += (formatted ? '\n' : '') + indent.repeat(indentLevel) + token;
+    } else if (token.startsWith('<')) {
+      formatted += (formatted ? '\n' : '') + indent.repeat(indentLevel) + token;
+      indentLevel++;
+    } else {
+      formatted += (formatted ? '\n' : '') + indent.repeat(indentLevel) + token;
+    }
+  }
+
+  return formatted.trim() || trimmed;
+};
 
 export const cleanGeneratedCode = (raw: string): string => {
   if (!raw || typeof raw !== 'string') return '';
@@ -37,12 +76,13 @@ export const cleanGeneratedCode = (raw: string): string => {
     code = code.replace(/^```[a-zA-Z0-9_-]*\s*\n?/i, '').replace(/\n?```\s*$/i, '');
   }
 
-  // 4. Remove import statements
-  code = code.replace(/^import\s+[\s\S]*?;\s*$/gm, '');
-  code = code.replace(/^import\s+[^;]*?from\s+['"][^'"]*['"]\s*;?\s*$/gm, '');
+  // 4. Remove import statements (handles single-line and multiline imports)
+  code = code.replace(/import\s+[^;]*?from\s+['"][^'"]*['"]\s*;?\s*/gi, '');
+  code = code.replace(/import\s+['"][^'"]*['"]\s*;?\s*/gi, '');
+  code = code.replace(/import\s+[\s\S]*?;\s*/gi, '');
 
   // 5. Remove export statements
-  code = code.replace(/^export\s+(?:default\s+)?/gm, '');
+  code = code.replace(/export\s+(?:default\s+)?/gi, '');
 
   // 6. Unwrap functional component or return statement if AI wrapped it
   const returnMatch = code.match(/return\s*\(\s*([\s\S]*?)\s*\)\s*;?\s*(?:\}|\);?)*\s*$/);

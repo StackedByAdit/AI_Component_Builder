@@ -1,7 +1,7 @@
 // apps/api/test/codeCleaner.test.ts
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanGeneratedCode } from '../src/lib/codeCleaner.js';
+import { cleanGeneratedCode, formatJsxCode } from '../src/lib/codeCleaner.js';
 
 describe('codeCleaner', () => {
   it('extracts jsx from structured JSON', () => {
@@ -46,6 +46,22 @@ export default function Component() {
     const raw = '<div className="p-2">Text</div>;';
     const cleaned = cleanGeneratedCode(raw);
     assert.equal(cleaned, '<div className="p-2">Text</div>');
+  });
+
+  it('removes single-line import and export statements on the same line as JSX', () => {
+    const raw = `import React, { useState } from 'react'; <div className="p-4">Content</div>`;
+    const cleaned = cleanGeneratedCode(raw);
+    assert.ok(!cleaned.includes('import'));
+    assert.ok(cleaned.includes('<div className="p-4">'));
+  });
+
+  it('formats single-line JSX with clean indentation and newlines', () => {
+    const raw = `<div className="card"><header><h1>Title</h1></header><p>Description</p></div>`;
+    const formatted = formatJsxCode(raw);
+    assert.ok(formatted.includes('\n'));
+    assert.ok(formatted.split('\n').length >= 4);
+    assert.ok(formatted.startsWith('<div'));
+    assert.ok(formatted.endsWith('</div>'));
   });
 
   it('handles empty or non-string inputs safely', () => {
