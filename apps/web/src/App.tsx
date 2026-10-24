@@ -7,8 +7,13 @@ import { AuthForm } from './components/auth-form';
 import { API_BASE_URL } from './lib/api';
 
 export const App = () => {
-  const { auth } = useAuth();
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const { auth, isRestoring, signout } = useAuth();
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>(() => {
+    if (typeof window !== 'undefined' && window.location.pathname === '/signup') {
+      return 'signup';
+    }
+    return 'signin';
+  });
   const [generationState, setGenerationState] = useState<GenerationState>({ status: 'idle' });
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -21,6 +26,42 @@ export const App = () => {
   const requestIdRef = useRef<number>(0);
   const isSavingRef = useRef<boolean>(false);
 
+  // Sync initial URL path and listen for popstate
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handlePopState = () => {
+      const currentPath = window.location.pathname;
+      if (currentPath === '/signup') {
+        setAuthMode('signup');
+      } else if (currentPath === '/login' || currentPath === '/') {
+        setAuthMode('signin');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Update URL to / when authenticated
+  useEffect(() => {
+    if (auth.status === 'authenticated' && typeof window !== 'undefined') {
+      if (window.location.pathname === '/login' || window.location.pathname === '/signup') {
+        window.history.replaceState(null, '', '/');
+      }
+    }
+  }, [auth.status]);
+
+  const handleSwitchAuthMode = useCallback(() => {
+    setAuthMode((prev) => {
+      const next = prev === 'signin' ? 'signup' : 'signin';
+      if (typeof window !== 'undefined') {
+        window.history.pushState(null, '', next === 'signup' ? '/signup' : '/login');
+      }
+      return next;
+    });
+  }, []);
+
   const fetchSavedComponents = useCallback(async () => {
     if (auth.status !== 'authenticated') return;
     setIsLoadingSaved(true);
@@ -31,6 +72,10 @@ export const App = () => {
           Authorization: `Bearer ${auth.token}`,
         },
       });
+      if (response.status === 401) {
+        signout();
+        return;
+      }
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.error || `Failed to fetch components (${response.status})`);
@@ -42,7 +87,7 @@ export const App = () => {
     } finally {
       setIsLoadingSaved(false);
     }
-  }, [auth]);
+  }, [auth, signout]);
 
   useEffect(() => {
     let isMounted = true;
@@ -114,6 +159,11 @@ export const App = () => {
         // Ignore response if a newer request was dispatched
         if (currentRequestId !== requestIdRef.current) return;
 
+        if (response.status === 401) {
+          signout();
+          return;
+        }
+
         if (!response.ok) {
           throw new Error(data.error ?? `Generation failed (${response.status})`);
         }
@@ -142,7 +192,7 @@ export const App = () => {
         }
       }
     },
-    [auth],
+    [auth, signout],
   );
 
   const handleSave = useCallback(async () => {
@@ -170,6 +220,11 @@ export const App = () => {
         }),
       });
 
+      if (response.status === 401) {
+        signout();
+        return;
+      }
+
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.error || 'Failed to save component');
@@ -185,7 +240,7 @@ export const App = () => {
       isSavingRef.current = false;
       setIsSaving(false);
     }
-  }, [generationState, auth, isSaved, fetchSavedComponents]);
+  }, [generationState, auth, isSaved, fetchSavedComponents, signout]);
 
   const handleDeleteComponent = useCallback(
     async (id: string) => {
@@ -197,6 +252,10 @@ export const App = () => {
             Authorization: `Bearer ${auth.token}`,
           },
         });
+        if (response.status === 401) {
+          signout();
+          return;
+        }
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));
           throw new Error(data.error || 'Failed to delete component');
@@ -210,7 +269,7 @@ export const App = () => {
         alert(err instanceof Error ? err.message : 'Failed to delete component');
       }
     },
-    [auth, selectedComponentId],
+    [auth, selectedComponentId, signout],
   );
 
   const handleSelectComponent = useCallback((comp: ComponentDocument) => {
@@ -223,11 +282,22 @@ export const App = () => {
     });
   }, []);
 
-  if (auth.status === 'idle' || auth.status === 'loading' || auth.status === 'error') {
+  if (isRestoring) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-950 text-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs text-gray-500">Restoring session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (auth.status !== 'authenticated') {
     return (
       <AuthForm
         mode={authMode}
-        onSwitch={() => setAuthMode((m) => (m === 'signin' ? 'signup' : 'signin'))}
+        onSwitch={handleSwitchAuthMode}
       />
     );
   }

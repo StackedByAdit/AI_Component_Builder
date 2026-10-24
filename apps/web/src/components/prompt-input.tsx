@@ -26,7 +26,7 @@ export const Sidebar = ({
   onRefreshSaved,
   selectedComponentId = null,
 }: SidebarProps) => {
-  const { signout } = useAuth();
+  const { signout, auth } = useAuth();
   const [activeTab, setActiveTab] = useState<'create' | 'saved'>('create');
   const [input, setInput] = useState('');
 
@@ -266,11 +266,16 @@ export const Sidebar = ({
       </div>
 
       {/* footer */}
-      <div className="px-4 py-3 border-t border-gray-800 flex items-center justify-between">
-        <p className="text-xs text-gray-600">Key stored on server</p>
+      <div className="px-4 py-3 border-t border-gray-800 flex items-center justify-between gap-2">
+        <p
+          className="text-xs text-gray-500 truncate"
+          title={auth.status === 'authenticated' ? auth.user.email : undefined}
+        >
+          {auth.status === 'authenticated' ? auth.user.email : 'Key stored on server'}
+        </p>
         <button
           onClick={signout}
-          className="text-xs text-gray-400 hover:text-white transition-colors"
+          className="text-xs text-gray-400 hover:text-white transition-colors shrink-0"
         >
           Sign out
         </button>
