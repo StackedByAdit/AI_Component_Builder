@@ -58,6 +58,44 @@ export const scrubErrorMessage = (text: string): string => {
 };
 
 /**
+ * Formats JSX code with clean indentation and newlines if it was provided as a single-line string.
+ */
+export const formatJsxCode = (code: string): string => {
+  if (!code || typeof code !== 'string') return '';
+  const trimmed = code.trim();
+
+  // If already multiline with at least 4 lines, keep as is
+  if (trimmed.split('\n').length > 4) {
+    return trimmed;
+  }
+
+  let formatted = '';
+  let indentLevel = 0;
+  const indent = '  ';
+
+  const tokens = trimmed.split(/(<\/?[a-zA-Z0-9_.:$-]+(?:\s+[^>]*?)?\/?>)/g).filter(Boolean);
+
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i].trim();
+    if (!token) continue;
+
+    if (token.startsWith('</')) {
+      indentLevel = Math.max(0, indentLevel - 1);
+      formatted += (formatted ? '\n' : '') + indent.repeat(indentLevel) + token;
+    } else if (token.startsWith('<') && token.endsWith('/>')) {
+      formatted += (formatted ? '\n' : '') + indent.repeat(indentLevel) + token;
+    } else if (token.startsWith('<')) {
+      formatted += (formatted ? '\n' : '') + indent.repeat(indentLevel) + token;
+      indentLevel++;
+    } else {
+      formatted += (formatted ? '\n' : '') + indent.repeat(indentLevel) + token;
+    }
+  }
+
+  return formatted.trim() || trimmed;
+};
+
+/**
  * Builds a sandboxed HTML document that compiles and renders JSX with React 18, Babel, and Tailwind.
  * Features:
  * - Content Security Policy restricting network and framing.
@@ -144,6 +182,14 @@ export const buildSrcdoc = (jsxCode: string): string => {
         return;
       }
 
+      // Strip any stray import/export statements that might have been emitted
+      var cleanCode = rawCode
+        .replace(/import\\s+[^;]*?from\\s+['"][^'"]*['"]\\s*;?\\s*/gi, '')
+        .replace(/import\\s+['"][^'"]*['"]\\s*;?\\s*/gi, '')
+        .replace(/import\\s+[\\s\\S]*?;\\s*/gi, '')
+        .replace(/export\\s+(?:default\\s+)?/gi, '')
+        .trim();
+
       // Verify essential runtime dependencies
       if (typeof React === 'undefined' || typeof ReactDOM === 'undefined' || typeof Babel === 'undefined') {
         displayError('Initialization Error', 'Required preview libraries (React, Babel) failed to load. Check network or CSP.');
@@ -166,14 +212,16 @@ export const buildSrcdoc = (jsxCode: string): string => {
           '  var createContext = React.createContext;',
           '  var Fragment = React.Fragment;',
           '  return function GeneratedComponent() {',
-          '    return (\\n' + rawCode + '\\n);',
+          '    return (\\n' + cleanCode + '\\n);',
           '  };',
           '})()'
         ].join('\\n');
 
+        // Compile with classic React runtime (React.createElement) to avoid ES module import emissions in eval
         var transpiled = Babel.transform(wrapped, {
-          presets: ['react'],
-          filename: 'generated-component.tsx'
+          presets: [
+            ['react', { runtime: 'classic' }]
+          ]
         }).code;
 
         var factory = new Function('React', 'return ' + transpiled + ';');

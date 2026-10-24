@@ -24,6 +24,7 @@ import {
   PREVIEW_CSP,
   buildSrcdoc,
   scrubErrorMessage,
+  formatJsxCode,
 } from '../src/lib/preview-sandbox.ts';
 import type { GenerationState } from '../src/types.ts';
 
@@ -132,6 +133,29 @@ describe('Preview Security Boundary & Sandboxing', () => {
       assert.ok(srcdoc.includes('var rawCode = '));
       // Does not contain syntax-breaking raw unescaped newlines in the string literal declaration
       assert.ok(!srcdoc.includes('var rawCode = <div'));
+    });
+
+    it('uses classic React runtime in Babel transform to prevent ES module import emission', () => {
+      const srcdoc = buildSrcdoc('<div>Component</div>');
+
+      // The classic runtime uses React.createElement rather than emitting "import { jsx as _jsx } from 'react/jsx-runtime'"
+      assert.ok(
+        srcdoc.includes("['react', { runtime: 'classic' }]"),
+        'Babel transform must explicitly configure classic runtime to prevent module import syntax errors in eval'
+      );
+    });
+
+    it('strips stray import/export statements in preview runner', () => {
+      const srcdoc = buildSrcdoc("import React from 'react'; <div className=\"p-4\">Clean</div>");
+      assert.ok(srcdoc.includes('.replace(/import\\s+'));
+      assert.ok(srcdoc.includes('.replace(/export\\s+'));
+    });
+
+    it('formats single-line JSX with clean indentation and newlines', () => {
+      const singleLine = '<div className="p-4"><header><h1>Title</h1></header><p>Desc</p></div>';
+      const formatted = formatJsxCode(singleLine);
+      assert.ok(formatted.includes('\n'));
+      assert.ok(formatted.split('\n').length >= 4);
     });
   });
 
