@@ -9,12 +9,14 @@
   },
   "dependencies": {
     "@hono/node-server": "latest",
-    "hono": "latest",
-    "@repo/types": "workspace:*"
+    "@prisma/client": "^6.4.1",
+    "@repo/types": "workspace:*",
+    "hono": "latest"
   },
   "devDependencies": {
+    "@types/node": "latest",
+    "prisma": "^6.4.1",
     "tsx": "latest",
-    "typescript": "~5.9.3",
-    "@types/node": "latest"
+    "typescript": "~5.9.3"
   }
 }

@@ -13,6 +13,8 @@ dist-ssr
 # Environment
 .env
 .env.local
+*.db
+*.db-journal
 
 # Editor directories and files
 .vscode/*
