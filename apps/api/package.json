@@ -11,9 +11,13 @@
     "@hono/node-server": "latest",
     "@prisma/client": "^6.4.1",
     "@repo/types": "workspace:*",
-    "hono": "latest"
+    "bcryptjs": "^3.0.3",
+    "hono": "latest",
+    "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "latest",
     "prisma": "^6.4.1",
     "tsx": "latest",
