@@ -1,9 +1,9 @@
 // apps/api/src/routes/generate.ts
-// purpose: POST /generate — proxies prompt to gemini and returns clean jsx
+// purpose: POST /generate — proxies prompt to gemini, validates, auto-repairs, and returns clean jsx
 
 import { Hono } from 'hono';
 import { requireAuth, type AuthEnv } from '../middleware/auth.js';
-import { cleanGeneratedCode } from '../lib/codeCleaner.js';
+import { generateComponentWithRepair, scrubSecrets } from '../lib/geminiGenerator.js';
 import type { GenerateRequest, GenerateResponse } from '@repo/types';
 
 export const generateRouter = new Hono<AuthEnv>();
@@ -11,41 +11,36 @@ export const generateRouter = new Hono<AuthEnv>();
 generateRouter.use('*', requireAuth);
 
 generateRouter.post('/', async (c) => {
-  const { prompt } = await c.req.json<GenerateRequest>();
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return c.json({ error: 'GEMINI_API_KEY not set' }, 500);
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `You are a React UI generator.\n\nReturn ONLY valid JSX.\nNo explanations.\nNo markdown.\nNo code fences.\nNo imports.\n\nThe output MUST start with <div> and end with </div>.\n\nUse Tailwind CSS.\n\nComponent:\n${prompt}`,
-          }],
-        }],
-      }),
-    }
-  );
-
-  const data = await res.json();
-
-  if (!res.ok || data.error) {
-    const errorMsg = data.error?.message || `Gemini API error (${res.status})`;
-    return c.json({ error: errorMsg }, 500);
+  const body = await c.req.json<GenerateRequest>().catch(() => null);
+  if (!body || typeof body.prompt !== 'string' || !body.prompt.trim()) {
+    return c.json({ error: 'Prompt is required' }, 400);
   }
 
-  const raw: string =
-    data?.candidates
-      ?.flatMap((c: any) => c.content?.parts || [])
-      ?.map((p: any) => p.text || '')
-      ?.join('\n') || '';
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return c.json({ error: 'GEMINI_API_KEY not set' }, 500);
+  }
 
-  if (!raw) return c.json({ error: 'No code generated' }, 500);
+  try {
+    const result = await generateComponentWithRepair({
+      prompt: body.prompt.trim(),
+      apiKey,
+      signal: c.req.raw.signal,
+    });
 
-  const code = cleanGeneratedCode(raw);
-  const response: GenerateResponse = { code };
-  return c.json(response);
+    const response: GenerateResponse = { code: result.code };
+    return c.json(response);
+  } catch (err: any) {
+    if (c.req.raw.signal?.aborted || err.name === 'AbortError' || err.statusCode === 499) {
+      return c.json({ error: 'Generation was cancelled' }, 499 as any);
+    }
+
+    const statusCode =
+      typeof err.statusCode === 'number' && err.statusCode >= 400 && err.statusCode < 600
+        ? err.statusCode
+        : 500;
+
+    const message = scrubSecrets(err.message || 'Generation failed', [apiKey]);
+    return c.json({ error: message }, statusCode as any);
+  }
 });

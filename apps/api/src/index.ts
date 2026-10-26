@@ -25,8 +25,16 @@ app.route('/generate', generateRouter);
 
 const PORT = Number(process.env.PORT) || 3001;
 
-serve({ fetch: app.fetch, port: PORT }, () => {
-  console.log(`api running on http://localhost:${PORT}`);
-});
+const isTest =
+  process.env.NODE_ENV === 'test' ||
+  process.execArgv.includes('--test') ||
+  process.argv.some((a) => a.includes('test')) ||
+  Boolean(process.env.NODE_TEST_CONTEXT);
+
+if (!isTest) {
+  serve({ fetch: app.fetch, port: PORT }, () => {
+    console.log(`api running on http://localhost:${PORT}`);
+  });
+}
 
 export default app;
