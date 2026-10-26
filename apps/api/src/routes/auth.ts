@@ -10,7 +10,18 @@ import type { SignupRequest, SigninRequest, AuthResponse } from '@repo/types';
 export const authRouter = new Hono();
 
 authRouter.post('/signup', async (c) => {
-  const { email, password } = await c.req.json<SignupRequest>();
+  const body = await c.req.json<SignupRequest>().catch(() => null);
+  if (
+    !body ||
+    typeof body.email !== 'string' ||
+    !body.email.trim() ||
+    typeof body.password !== 'string' ||
+    !body.password
+  ) {
+    return c.json({ error: 'Email and password are required' }, 400);
+  }
+  const email = body.email.trim().toLowerCase();
+  const password = body.password;
 
   const exists = await db.user.findUnique({ where: { email } });
   if (exists) return c.json({ error: 'Email already in use' }, 400);
@@ -27,7 +38,18 @@ authRouter.post('/signup', async (c) => {
 });
 
 authRouter.post('/signin', async (c) => {
-  const { email, password } = await c.req.json<SigninRequest>();
+  const body = await c.req.json<SigninRequest>().catch(() => null);
+  if (
+    !body ||
+    typeof body.email !== 'string' ||
+    !body.email.trim() ||
+    typeof body.password !== 'string' ||
+    !body.password
+  ) {
+    return c.json({ error: 'Email and password are required' }, 400);
+  }
+  const email = body.email.trim().toLowerCase();
+  const password = body.password;
 
   const user = await db.user.findUnique({ where: { email } });
   if (!user) return c.json({ error: 'Invalid credentials' }, 401);
