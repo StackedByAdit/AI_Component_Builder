@@ -139,5 +139,58 @@ describe('POST /generate', () => {
     assert.equal(res.status, 422);
     const data = await res.json();
     assert.ok(data.error.includes('failed validation after 2 repair attempts'));
+    assert.equal(data.code, undefined);
+  });
+
+  it('returns 500 when upstream model returns empty candidate parts', async () => {
+    globalThis.fetch = async () => {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          candidates: [{ content: { parts: [] } }],
+        }),
+      } as unknown as Response;
+    };
+
+    const res = await app.request('/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ prompt: 'A button' }),
+    });
+
+    assert.equal(res.status, 500);
+    const data = await res.json();
+    assert.ok(data.error.includes('empty response'));
+    assert.equal(data.code, undefined);
+  });
+
+  it('returns 400 when generation is blocked by safety filters', async () => {
+    globalThis.fetch = async () => {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          candidates: [{ finishReason: 'SAFETY' }],
+        }),
+      } as unknown as Response;
+    };
+
+    const res = await app.request('/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ prompt: 'A dangerous prompt' }),
+    });
+
+    assert.equal(res.status, 400);
+    const data = await res.json();
+    assert.ok(data.error.includes('safety filters'));
+    assert.equal(data.code, undefined);
   });
 });
