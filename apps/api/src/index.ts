@@ -1,6 +1,10 @@
 // apps/api/src/index.ts
 // purpose: hono app entry point
 
+try {
+  process.loadEnvFile?.();
+} catch {}
+
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
