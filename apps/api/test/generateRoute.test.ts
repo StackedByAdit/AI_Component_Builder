@@ -7,15 +7,22 @@ import { signToken } from '../src/lib/jwt.js';
 describe('POST /generate', () => {
   const originalFetch = globalThis.fetch;
   const originalKey = process.env.GEMINI_API_KEY;
+  const originalKeys = process.env.GEMINI_API_KEYS;
   const token = signToken('test-user-id');
 
   beforeEach(() => {
     process.env.GEMINI_API_KEY = 'AIzaSyD_MOCK_SECRET_KEY';
+    delete process.env.GEMINI_API_KEYS;
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
     process.env.GEMINI_API_KEY = originalKey;
+    if (originalKeys !== undefined) {
+      process.env.GEMINI_API_KEYS = originalKeys;
+    } else {
+      delete process.env.GEMINI_API_KEYS;
+    }
   });
 
   it('rejects unauthenticated requests with 401', async () => {

@@ -182,6 +182,36 @@ describe('geminiGenerator', () => {
       );
     });
 
+    it('rotates to next API key when first key encounters 429 rate limit', async () => {
+      const validJsx = '<div className="p-4">Rotated Key Success</div>';
+      const key1 = 'AIzaSyD_KEY_ONE_11111';
+      const key2 = 'AIzaSyD_KEY_TWO_22222';
+
+      const { mockFetch, calls } = createMockFetch([
+        // Key 1 returns 429
+        {
+          status: 429,
+          data: { error: { message: 'Quota exceeded for key 1' } },
+        },
+        // Key 2 succeeds
+        {
+          status: 200,
+          data: makeCandidate(validJsx),
+        },
+      ]);
+
+      const result = await generateComponentWithRepair({
+        prompt: 'Key rotation test',
+        apiKeys: [key1, key2],
+        fetchFn: mockFetch as any,
+      });
+
+      assert.equal(result.code, validJsx);
+      assert.equal(calls.length, 2);
+      assert.ok(calls[0].url.includes(key1));
+      assert.ok(calls[1].url.includes(key2));
+    });
+
     it('handles upstream 503 service unavailable errors cleanly', async () => {
       const { mockFetch } = createMockFetch([
         {
