@@ -31,6 +31,12 @@ generateRouter.post('/', async (c) => {
   );
 
   const data = await res.json();
+
+  if (!res.ok || data.error) {
+    const errorMsg = data.error?.message || `Gemini API error (${res.status})`;
+    return c.json({ error: errorMsg }, 500);
+  }
+
   const raw: string =
     data?.candidates
       ?.flatMap((c: any) => c.content?.parts || [])
