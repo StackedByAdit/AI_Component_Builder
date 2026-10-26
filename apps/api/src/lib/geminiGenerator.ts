@@ -40,7 +40,8 @@ export const scrubSecrets = (text: string, secrets: (string | undefined)[]): str
 
 export interface GenerateOptions {
   prompt: string;
-  apiKey: string;
+  apiKey?: string;
+  apiKeys?: string[];
   signal?: AbortSignal;
   timeoutMs?: number;
   model?: string;
@@ -179,6 +180,7 @@ export const generateComponentWithRepair = async (options: GenerateOptions): Pro
   const {
     prompt,
     apiKey,
+    apiKeys,
     signal,
     timeoutMs = DEFAULT_TIMEOUT_MS,
     model = DEFAULT_MODEL,
@@ -188,9 +190,17 @@ export const generateComponentWithRepair = async (options: GenerateOptions): Pro
   if (!prompt || !prompt.trim()) {
     throw new GenerationError('Prompt is required.', 400);
   }
-  if (!apiKey) {
+
+  const keyPool: string[] = apiKeys && apiKeys.length > 0
+    ? apiKeys
+    : apiKey
+    ? apiKey.split(',').map((k) => k.trim()).filter(Boolean)
+    : [];
+
+  if (keyPool.length === 0) {
     throw new GenerationError('GEMINI_API_KEY is not configured.', 500);
   }
+
   if (signal?.aborted) {
     const error = new GenerationError('Generation was cancelled.', 499);
     error.name = 'AbortError';
@@ -204,6 +214,7 @@ export const generateComponentWithRepair = async (options: GenerateOptions): Pro
   let attempt = 0;
   let lastCode = '';
   let lastErrors: string[] = [];
+  let activeKeyIndex = 0;
 
   while (attempt <= MAX_REPAIRS) {
     if (signal?.aborted) {
@@ -214,13 +225,36 @@ export const generateComponentWithRepair = async (options: GenerateOptions): Pro
 
     let rawResponse = '';
     try {
-      rawResponse = await callGeminiApi({
-        textPrompt: currentPrompt,
-        apiKey,
-        signal: effectiveSignal,
-        model,
-        fetchFn,
-      });
+      let lastCallErr: any;
+      let succeeded = false;
+
+      for (let k = 0; k < keyPool.length; k++) {
+        const keyToUse = keyPool[(activeKeyIndex + k) % keyPool.length];
+        try {
+          rawResponse = await callGeminiApi({
+            textPrompt: currentPrompt,
+            apiKey: keyToUse,
+            signal: effectiveSignal,
+            model,
+            fetchFn,
+          });
+          activeKeyIndex = (activeKeyIndex + k) % keyPool.length;
+          succeeded = true;
+          break;
+        } catch (callErr: any) {
+          lastCallErr = callErr;
+          if (callErr.statusCode === 429 && k < keyPool.length - 1) {
+            // Brief backoff and rotate to next key on rate limit
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+            continue;
+          }
+          throw callErr;
+        }
+      }
+
+      if (!succeeded && lastCallErr) {
+        throw lastCallErr;
+      }
     } catch (err: any) {
       if (signal?.aborted) {
         const error = new GenerationError('Generation was cancelled.', 499);
@@ -233,7 +267,7 @@ export const generateComponentWithRepair = async (options: GenerateOptions): Pro
       if (err instanceof GenerationError) {
         throw err;
       }
-      throw new GenerationError(scrubSecrets(err.message || 'Generation failed', [apiKey]), 500);
+      throw new GenerationError(scrubSecrets(err.message || 'Generation failed', keyPool), 500);
     }
 
     const cleanedCode = cleanGeneratedCode(rawResponse);

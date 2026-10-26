@@ -17,14 +17,20 @@ generateRouter.post('/', async (c) => {
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  const apiKeys = process.env.GEMINI_API_KEYS
+    ? process.env.GEMINI_API_KEYS.split(',').map((k) => k.trim()).filter(Boolean)
+    : apiKey
+    ? [apiKey]
+    : [];
+
+  if (apiKeys.length === 0) {
     return c.json({ error: 'GEMINI_API_KEY not set' }, 500);
   }
 
   try {
     const result = await generateComponentWithRepair({
       prompt: body.prompt.trim(),
-      apiKey,
+      apiKeys,
       signal: c.req.raw.signal,
     });
 
