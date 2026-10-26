@@ -49,6 +49,7 @@ export interface SaveComponentRequest { prompt: string; code: string; title: str
 // component props
 export interface PromptInputProps {
   onGenerate: (prompt: string) => void;
+  onCancel?: () => void;
   isLoading: boolean;
 }
 
