@@ -16,6 +16,7 @@ const EXAMPLE_PROMPTS = [
 
 export const Sidebar = ({
   onGenerate,
+  onCancel,
   isLoading,
 }: PromptInputProps) => {
   const { signout } = useAuth();
@@ -58,20 +59,35 @@ export const Sidebar = ({
             rows={5}
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:ring-1 focus:ring-violet-500"
           />
-          <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className="w-full py-2.5 text-sm font-medium text-white bg-linear-to-r from-violet-600 to-indigo-600 rounded-lg hover:from-violet-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
+          {isLoading ? (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled
+                className="flex-1 py-2.5 text-sm font-medium text-white bg-linear-to-r from-violet-600 to-indigo-600 rounded-lg opacity-80 cursor-not-allowed flex items-center justify-center gap-2"
+              >
                 <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Generating...
-              </span>
-            ) : (
-              'Generate Component'
-            )}
-          </button>
+              </button>
+              {onCancel && (
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="px-3 py-2.5 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-700 rounded-lg hover:text-white hover:border-gray-600 hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          ) : (
+            <button
+              type="submit"
+              disabled={!input.trim()}
+              className="w-full py-2.5 text-sm font-medium text-white bg-linear-to-r from-violet-600 to-indigo-600 rounded-lg hover:from-violet-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Generate Component
+            </button>
+          )}
         </form>
 
         {/* example chips */}

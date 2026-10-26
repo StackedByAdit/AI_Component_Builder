@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { GenerationState } from './types';
 import { Sidebar } from './components/prompt-input';
 import { PreviewPanel } from './preview-panel';
@@ -10,10 +10,29 @@ export const App = () => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [generationState, setGenerationState] = useState<GenerationState>({ status: 'idle' });
   const [isSaving, setIsSaving] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef<number>(0);
+
+  const handleCancel = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setGenerationState({ status: 'idle' });
+  }, []);
 
   const handleGenerate = useCallback(
     async (prompt: string) => {
       if (auth.status !== 'authenticated') return;
+
+      // Abort previous in-flight request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      const currentRequestId = ++requestIdRef.current;
+
       setGenerationState({ status: 'loading' });
 
       try {
@@ -24,10 +43,17 @@ export const App = () => {
             'Authorization': `Bearer ${auth.token}`,
           },
           body: JSON.stringify({ prompt }),
+          signal: controller.signal,
         });
 
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? 'Generation failed');
+        const data = await response.json().catch(() => ({}));
+
+        // Ignore response if a newer request was dispatched
+        if (currentRequestId !== requestIdRef.current) return;
+
+        if (!response.ok) {
+          throw new Error(data.error ?? `Generation failed (${response.status})`);
+        }
 
         const code = data.code as string;
         if (!code) {
@@ -36,9 +62,21 @@ export const App = () => {
         }
 
         setGenerationState({ status: 'success', code, prompt });
-      } catch (err) {
+      } catch (err: unknown) {
+        // Ignore stale responses
+        if (currentRequestId !== requestIdRef.current) return;
+
+        // Cleanly ignore client cancellation
+        if ((err instanceof Error && err.name === 'AbortError') || controller.signal.aborted) {
+          return;
+        }
+
         const message = err instanceof Error ? err.message : 'Generation failed';
         setGenerationState({ status: 'error', message });
+      } finally {
+        if (currentRequestId === requestIdRef.current) {
+          abortControllerRef.current = null;
+        }
       }
     },
     [auth],
@@ -78,6 +116,7 @@ export const App = () => {
     <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
       <Sidebar
         onGenerate={handleGenerate}
+        onCancel={handleCancel}
         isLoading={generationState.status === 'loading'}
       />
 

@@ -15,7 +15,11 @@ export const AuthForm = ({ mode, onSwitch }: { mode: 'signin' | 'signup'; onSwit
     (e: FormEvent) => {
       e.preventDefault();
       if (!email.trim() || !password.trim() || isLoading) return;
-      mode === 'signup' ? signup({ email, password }) : signin({ email, password });
+      if (mode === 'signup') {
+        signup({ email, password });
+      } else {
+        signin({ email, password });
+      }
     },
     [email, password, isLoading, mode, signup, signin]
   );
