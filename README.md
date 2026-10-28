@@ -17,7 +17,7 @@ The project is structured as a pnpm monorepo managed with Turborepo:
 ```
 
 ### Application Flow
-1. **Authentication**: Users register or sign in via `POST /auth/signup` and `POST /auth/signin`. Passwords are encrypted with bcrypt, and sessions use JWT tokens.
+1. **Authentication**: Users register or sign in via `POST /auth/signup` and `POST /auth/signin`. Registration validates password requirements (minimum 8 characters, password confirmation match, and valid email format). Passwords are securely hashed with bcrypt (10 salt rounds). Sessions use verified JWT tokens with automatic session verification on initialization via `GET /auth/me`, clean session invalidation via `POST /auth/signout`, and brute-force protection with rate limiting (max 5 failed attempts per 5 minutes).
 2. **Generation**: Authenticated users submit UI descriptions to `POST /generate`. The backend prompts Gemini with structured JSON output requirements (`{ jsx: string }`).
 3. **Validation & Bounded Repair**: Generated code is parsed and validated using the TypeScript compiler AST (`validateJsx`). If syntax errors are found, the error details and faulty code are fed back into Gemini for automatic correction (bounded at at most 2 repair attempts).
 4. **Sandboxed Preview**: The validated component is rendered inside an isolated browser iframe (`sandbox="allow-scripts"` without `allow-same-origin`) protected by a strict Content Security Policy.
