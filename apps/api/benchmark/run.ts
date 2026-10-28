@@ -30,7 +30,7 @@ const main = async () => {
   }
 
   if (!isJsonOnly) {
-    console.log(`\nStarting AI Component Builder Benchmark in [${mode.toUpperCase()}] mode...`);
+    console.log(`\nStarting ForgeAI benchmark in [${mode.toUpperCase()}] mode...`);
     console.log(`Total prompts to evaluate: 40\n`);
   }
 

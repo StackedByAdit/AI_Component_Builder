@@ -22,6 +22,8 @@ import { PreviewPanel } from '../src/preview-panel.tsx';
 import { Sidebar } from '../src/components/prompt-input.tsx';
 import { AuthForm } from '../src/components/auth-form.tsx';
 import { AuthProvider } from '../src/context/auth.tsx';
+import { LandingPage } from '../src/components/landing/landing-page.tsx';
+import { pathToRoute } from '../src/lib/navigation.ts';
 import type { GenerationState } from '../src/types.ts';
 
 describe('Frontend Critical Behaviour', () => {
@@ -394,6 +396,78 @@ describe('Frontend Critical Behaviour', () => {
       triggerSave();
       triggerSave();
       assert.equal(saveCount, 1);
+    });
+  });
+
+  describe('ForgeAI landing page and routes', () => {
+    it('maps public and workspace paths', () => {
+      assert.equal(pathToRoute('/'), 'home');
+      assert.equal(pathToRoute('/login'), 'login');
+      assert.equal(pathToRoute('/signup'), 'signup');
+      assert.equal(pathToRoute('/workspace'), 'workspace');
+      assert.equal(pathToRoute('/unknown'), 'home');
+    });
+
+    it('explains the product and links signed-out visitors to auth', () => {
+      storageMap.clear();
+      const html = renderToStaticMarkup(
+        <AuthProvider>
+          <LandingPage />
+        </AuthProvider>
+      );
+
+      assert.ok(html.includes('ForgeAI'));
+      assert.ok(html.includes('Turn your ideas into React components.'));
+      assert.ok(html.includes('What ForgeAI does'));
+      assert.ok(html.includes('How it works'));
+      assert.ok(html.includes('Natural-language generation'));
+      assert.ok(html.includes('Live component preview'));
+      assert.ok(html.includes('Code inspection'));
+      assert.ok(html.includes('Component library'));
+      assert.ok(html.includes('Personal workspace'));
+      assert.ok(html.includes('Validation and repair'));
+      assert.ok(html.includes('Your next component starts with an idea.'));
+      assert.ok(html.includes('href="/signup"'));
+      assert.ok(html.includes('href="/login"'));
+      assert.ok(html.includes('href="#how-it-works"'));
+      assert.ok(html.includes('Static illustration of the workspace'));
+      assert.ok(!html.includes('AI Component Builder'));
+    });
+
+    it('offers the workspace to an authenticated visitor', () => {
+      storageMap.set('token', 'tok');
+      storageMap.set('user', JSON.stringify({ id: 'u1', email: 'dev@example.com' }));
+      try {
+        const html = renderToStaticMarkup(
+          <AuthProvider>
+            <LandingPage />
+          </AuthProvider>
+        );
+        assert.ok(html.includes('Open workspace'));
+        assert.ok(html.includes('href="/workspace"'));
+        assert.ok(!html.includes('Get started'));
+        assert.ok(!html.includes('href="/signup"'));
+      } finally {
+        storageMap.clear();
+      }
+    });
+
+    it('brands auth screens as ForgeAI', () => {
+      storageMap.clear();
+      const signin = renderToStaticMarkup(
+        <AuthProvider>
+          <AuthForm mode="signin" onSwitch={() => {}} />
+        </AuthProvider>
+      );
+      const signup = renderToStaticMarkup(
+        <AuthProvider>
+          <AuthForm mode="signup" onSwitch={() => {}} />
+        </AuthProvider>
+      );
+      assert.ok(signin.includes('ForgeAI'));
+      assert.ok(signup.includes('ForgeAI'));
+      assert.ok(!signin.includes('AI Component Builder'));
+      assert.ok(!signup.includes('AI Component Builder'));
     });
   });
 });
