@@ -1,19 +1,19 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import type { GenerationState, ComponentDocument } from './types';
 import { Sidebar } from './components/prompt-input';
 import { PreviewPanel } from './preview-panel';
 import { useAuth } from './context/auth';
 import { AuthForm } from './components/auth-form';
+import { LandingPage } from './components/landing/landing-page';
+import { BrandMark } from './components/brand-mark';
 import { API_BASE_URL } from './lib/api';
+import { navigate, pathToRoute, ROUTE_TITLES, type AppRoute } from './lib/navigation';
 
 export const App = () => {
   const { auth, isRestoring, signout } = useAuth();
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>(() => {
-    if (typeof window !== 'undefined' && window.location.pathname === '/signup') {
-      return 'signup';
-    }
-    return 'signin';
-  });
+  const [route, setRoute] = useState<AppRoute>(() =>
+    typeof window === 'undefined' ? 'home' : pathToRoute(window.location.pathname),
+  );
   const [generationState, setGenerationState] = useState<GenerationState>({ status: 'idle' });
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -26,41 +26,41 @@ export const App = () => {
   const requestIdRef = useRef<number>(0);
   const isSavingRef = useRef<boolean>(false);
 
-  // Sync initial URL path and listen for popstate
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handlePopState = () => {
-      const currentPath = window.location.pathname;
-      if (currentPath === '/signup') {
-        setAuthMode('signup');
-      } else if (currentPath === '/login' || currentPath === '/') {
-        setAuthMode('signin');
-      }
-    };
-
+    const handlePopState = () => setRoute(pathToRoute(window.location.pathname));
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Update URL to / when authenticated
-  useEffect(() => {
-    if (auth.status === 'authenticated' && typeof window !== 'undefined') {
-      if (window.location.pathname === '/login' || window.location.pathname === '/signup') {
-        window.history.replaceState(null, '', '/');
-      }
+  // Keep protected and auth URLs aligned with the session. The screen itself is derived below.
+  const screen = useMemo<AppRoute>(() => {
+    if (auth.status === 'authenticated' && (route === 'login' || route === 'signup')) return 'workspace';
+    if (!isRestoring && auth.status !== 'authenticated' && auth.status !== 'loading' && route === 'workspace') {
+      return 'login';
     }
-  }, [auth.status]);
+    return route;
+  }, [auth.status, isRestoring, route]);
+
+  useEffect(() => {
+    document.title = ROUTE_TITLES[screen];
+  }, [screen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const target =
+      screen === 'workspace' && (route === 'login' || route === 'signup')
+        ? '/workspace'
+        : screen === 'login' && route === 'workspace'
+          ? '/login'
+          : null;
+    if (target && window.location.pathname !== target) {
+      window.history.replaceState(null, '', target);
+    }
+  }, [screen, route]);
 
   const handleSwitchAuthMode = useCallback(() => {
-    setAuthMode((prev) => {
-      const next = prev === 'signin' ? 'signup' : 'signin';
-      if (typeof window !== 'undefined') {
-        window.history.pushState(null, '', next === 'signup' ? '/signup' : '/login');
-      }
-      return next;
-    });
-  }, []);
+    navigate(screen === 'signup' ? '/login' : '/signup');
+  }, [screen]);
 
   const fetchSavedComponents = useCallback(async () => {
     if (auth.status !== 'authenticated') return;
@@ -284,26 +284,25 @@ export const App = () => {
 
   if (isRestoring) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-950 text-white">
+      <div className="flex h-screen items-center justify-center bg-forge-bg text-forge-ink">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs text-gray-500">Restoring session...</p>
+          <BrandMark />
+          <p className="text-sm text-forge-muted">Restoring session...</p>
         </div>
       </div>
     );
   }
 
-  if (auth.status !== 'authenticated') {
-    return (
-      <AuthForm
-        mode={authMode}
-        onSwitch={handleSwitchAuthMode}
-      />
-    );
+  if (screen === 'login' || screen === 'signup') {
+    return <AuthForm mode={screen === 'signup' ? 'signup' : 'signin'} onSwitch={handleSwitchAuthMode} />;
+  }
+
+  if (screen !== 'workspace' || auth.status !== 'authenticated') {
+    return <LandingPage />;
   }
 
   return (
-    <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
+    <div className="workspace-shell flex h-screen bg-forge-bg text-forge-ink overflow-hidden">
       <Sidebar
         onGenerate={handleGenerate}
         onCancel={handleCancel}
