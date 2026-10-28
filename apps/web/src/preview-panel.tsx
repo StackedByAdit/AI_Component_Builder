@@ -25,9 +25,9 @@ export const PreviewPanel = ({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 min-w-0">
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-800">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-forge-paper border-b border-forge-line">
         <div className="flex items-center gap-3">
-          <div className="flex gap-1">
+          <div className="flex gap-4">
             <TabButton active={activeTab === 'preview'} onClick={() => setActiveTab('preview')}>
               Preview
             </TabButton>
@@ -36,7 +36,7 @@ export const PreviewPanel = ({
             </TabButton>
           </div>
           {state.status === 'success' && (
-            <span className="text-xs text-gray-500 border-l border-gray-700 pl-3">
+            <span className="text-xs text-forge-muted border-l border-forge-line pl-3">
               Live render
             </span>
           )}
@@ -48,7 +48,7 @@ export const PreviewPanel = ({
                 <button
                   onClick={handleReload}
                   title="Reload preview iframe"
-                  className="text-xs px-2.5 py-1.5 bg-gray-800 text-gray-300 rounded-lg border border-gray-700 hover:text-white hover:border-gray-600 transition-colors"
+                  className="text-xs px-2.5 py-1.5 bg-transparent text-forge-ink border border-forge-line hover:bg-forge-bg transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ink"
                 >
                   Reload
                 </button>
@@ -57,12 +57,12 @@ export const PreviewPanel = ({
               <button
                 onClick={onSave}
                 disabled={isSaving || isSaved}
-                className={`relative text-xs px-3 py-1.5 rounded-lg transition-all duration-300 flex items-center gap-1.5 font-medium ${
+                className={`relative text-xs px-3 py-1.5 transition-colors flex items-center gap-1.5 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ink ${
                   isSaved
-                    ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 cursor-default'
+                    ? 'bg-forge-bg text-forge-ink border border-forge-line cursor-default'
                     : isSaving
-                    ? 'bg-emerald-600/70 text-white cursor-wait'
-                    : 'bg-emerald-600 text-white hover:bg-emerald-500 active:scale-95 shadow-sm hover:shadow'
+                    ? 'bg-forge-ink/80 text-white cursor-wait'
+                    : 'bg-forge-ink text-white hover:bg-black'
                 }`}
                 title={isSaved ? 'Component already saved' : 'Save component'}
               >
@@ -74,7 +74,7 @@ export const PreviewPanel = ({
                 ) : isSaved ? (
                   <>
                     <svg
-                      className="w-3.5 h-3.5 text-emerald-400 animate-checkmark"
+                      className="w-3.5 h-3.5 text-forge-ink animate-checkmark"
                       fill="none"
                       stroke="currentColor"
                       strokeWidth={2.5}
@@ -112,7 +112,7 @@ export const PreviewPanel = ({
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center bg-gray-950/50 p-6 overflow-auto min-w-0 min-h-0">
+      <div className="flex-1 flex items-center justify-center bg-forge-bg p-6 overflow-auto min-w-0 min-h-0">
         {state.status === 'idle' && <IdlePlaceholder />}
         {state.status === 'loading' && <LoadingState />}
         {state.status === 'error' && <ErrorState message={state.message} />}
@@ -130,33 +130,33 @@ export const PreviewPanel = ({
 
 const IdlePlaceholder = () => (
   <div className="text-center">
-    <svg className="w-16 h-16 mx-auto mb-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-16 h-16 mx-auto mb-4 text-forge-line" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
     </svg>
-    <p className="text-sm text-gray-500">Describe a component to see a live preview</p>
-    <p className="text-xs text-gray-600 mt-1">Your generated UI will appear here</p>
+    <p className="text-sm text-forge-ink">Describe a component to see a live preview</p>
+    <p className="text-xs text-forge-muted mt-1">Your generated UI will appear here</p>
   </div>
 );
 
 const LoadingState = () => (
   <div className="flex flex-col items-center gap-4">
-    <div className="w-10 h-10 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+    <div className="w-10 h-10 border-2 border-forge-ink border-t-transparent rounded-full animate-spin" />
     <div className="text-center">
-      <p className="text-sm text-gray-300">Generating component...</p>
-      <p className="text-xs text-gray-500 mt-1">This usually takes a few seconds</p>
+      <p className="text-sm text-forge-ink">Generating component...</p>
+      <p className="text-xs text-forge-muted mt-1">This usually takes a few seconds</p>
     </div>
   </div>
 );
 
 const ErrorState = ({ message }: { message: string }) => (
   <div className="text-center max-w-sm">
-    <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-red-500/10 flex items-center justify-center">
-      <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="w-10 h-10 mx-auto mb-3 border border-red-200 bg-red-50 flex items-center justify-center">
+      <svg className="w-5 h-5 text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
       </svg>
     </div>
-    <p className="text-sm text-red-400">{message}</p>
-    <p className="text-xs text-gray-500 mt-2">Try a different prompt or check your API key</p>
+    <p className="text-sm text-red-800">{message}</p>
+    <p className="text-xs text-forge-muted mt-2">Try a different prompt or check your API key</p>
   </div>
 );
 
@@ -164,7 +164,7 @@ const WebPreview = ({ code, reloadKey }: { code: string; reloadKey?: number }) =
   const srcdoc = useMemo(() => buildSrcdoc(code), [code]);
 
   return (
-    <div className="w-full h-full rounded-xl overflow-hidden border border-gray-800 bg-white">
+    <div className="w-full h-full overflow-hidden border border-forge-line bg-white">
       <iframe
         key={reloadKey ?? 0}
         srcDoc={srcdoc}
@@ -178,11 +178,11 @@ const WebPreview = ({ code, reloadKey }: { code: string; reloadKey?: number }) =
 
 const CodeBlock = ({ code }: { code: string }) => {
   const formattedCode = useMemo(() => formatJsxCode(code), [code]);
-  const bgColor = (themes.nightOwl.plain?.backgroundColor as string) || '#011627';
+  const bgColor = '#1c1917';
 
   return (
     <div
-      className="w-full h-full overflow-auto rounded-xl border border-gray-800 bg-[#011627] min-w-0"
+      className="w-full h-full overflow-auto border border-forge-line bg-[#1c1917] min-w-0"
       style={{ backgroundColor: bgColor }}
     >
       <Highlight theme={themes.nightOwl} code={formattedCode} language="jsx">
@@ -229,7 +229,7 @@ const CopyButton = ({ code }: { code: string }) => {
   return (
     <button
       onClick={handleCopy}
-      className="text-xs px-3 py-1.5 bg-gray-800 text-gray-300 rounded-lg border border-gray-700 hover:text-white hover:border-gray-600 transition-colors"
+      className="text-xs px-3 py-1.5 bg-transparent text-forge-ink border border-forge-line hover:bg-forge-bg transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ink"
     >
       {copied ? 'Copied!' : 'Copy Code'}
     </button>
@@ -247,10 +247,10 @@ const TabButton = ({
 }) => (
   <button
     onClick={onClick}
-    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+    className={`px-1 py-1.5 text-xs font-medium border-b-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forge-ink ${
       active
-        ? 'bg-gray-800 text-white'
-        : 'text-gray-500 hover:text-gray-300'
+        ? 'border-forge-ink text-forge-ink'
+        : 'border-transparent text-forge-muted hover:text-forge-ink'
     }`}
   >
     {children}

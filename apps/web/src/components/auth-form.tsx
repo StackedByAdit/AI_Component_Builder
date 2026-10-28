@@ -3,6 +3,7 @@
 
 import { useState, useCallback, useRef, type FormEvent } from 'react';
 import { useAuth } from '../context/auth';
+import { Wordmark } from './brand-mark';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -100,23 +101,19 @@ export const AuthForm = ({ mode, onSwitch }: AuthFormProps) => {
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4 py-8 text-white">
-      <div className="w-full max-w-sm bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-forge-bg px-4 py-8 text-forge-ink">
+      <div className="w-full max-w-sm bg-forge-paper border border-forge-line p-6 sm:p-8 space-y-6">
         {/* Header Branding */}
-        <div className="flex flex-col items-center text-center space-y-2">
-          <div className="w-10 h-10 bg-linear-to-br from-violet-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-violet-500/20">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-            </svg>
-          </div>
+        <div className="flex flex-col items-center text-center space-y-3">
+          <Wordmark />
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">
+            <h1 className="font-serif text-2xl font-medium text-forge-ink tracking-tight">
               {mode === 'signup' ? 'Create Account' : 'Sign In'}
             </h1>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-sm text-forge-muted mt-1">
               {mode === 'signup'
-                ? 'Join AI Component Builder to generate and save UI components'
-                : 'Welcome back to AI Component Builder'}
+                ? 'Create an account to generate, preview, and save React components.'
+                : 'Log in to your ForgeAI workspace.'}
             </p>
           </div>
         </div>
@@ -137,7 +134,7 @@ export const AuthForm = ({ mode, onSwitch }: AuthFormProps) => {
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {/* Email Field */}
           <div>
-            <label htmlFor="email" className="block text-xs font-medium text-gray-300 mb-1.5">
+            <label htmlFor="email" className="block text-xs font-medium text-forge-ink mb-1.5">
               Email
             </label>
             <input
@@ -153,10 +150,10 @@ export const AuthForm = ({ mode, onSwitch }: AuthFormProps) => {
               onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
               aria-invalid={Boolean(emailError)}
               aria-describedby={emailError ? 'email-error' : undefined}
-              className={`w-full bg-gray-800 border rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none transition-colors ${
+              className={`w-full bg-white border rounded-md px-3.5 py-2.5 text-sm text-forge-ink placeholder-stone-400 focus:outline-none transition-colors ${
                 emailError
-                  ? 'border-red-500/80 focus:ring-1 focus:ring-red-500'
-                  : 'border-gray-700 focus:ring-1 focus:ring-violet-500 focus:border-violet-500'
+                  ? 'border-red-600 focus:ring-1 focus:ring-red-600'
+                  : 'border-forge-line focus:ring-1 focus:ring-forge-ink focus:border-forge-ink'
               }`}
             />
             {emailError && (
@@ -169,11 +166,11 @@ export const AuthForm = ({ mode, onSwitch }: AuthFormProps) => {
           {/* Password Field */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label htmlFor="password" className="block text-xs font-medium text-gray-300">
+              <label htmlFor="password" className="block text-xs font-medium text-forge-ink">
                 Password
               </label>
               {mode === 'signup' && (
-                <span className="text-[10px] text-gray-500">At least 8 characters</span>
+                <span className="text-[10px] text-forge-muted">At least 8 characters</span>
               )}
             </div>
             <div className="relative">
@@ -190,17 +187,17 @@ export const AuthForm = ({ mode, onSwitch }: AuthFormProps) => {
                 onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
                 aria-invalid={Boolean(passwordError)}
                 aria-describedby={passwordError ? 'password-error' : undefined}
-                className={`w-full bg-gray-800 border rounded-lg pl-3.5 pr-10 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none transition-colors ${
+                className={`w-full bg-white border rounded-md pl-3.5 pr-10 py-2.5 text-sm text-forge-ink placeholder-stone-400 focus:outline-none transition-colors ${
                   passwordError
-                    ? 'border-red-500/80 focus:ring-1 focus:ring-red-500'
-                    : 'border-gray-700 focus:ring-1 focus:ring-violet-500 focus:border-violet-500'
+                    ? 'border-red-600 focus:ring-1 focus:ring-red-600'
+                    : 'border-forge-line focus:ring-1 focus:ring-forge-ink focus:border-forge-ink'
                 }`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors p-1"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-forge-muted hover:text-forge-ink transition-colors p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ink"
               >
                 {showPassword ? (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -234,7 +231,7 @@ export const AuthForm = ({ mode, onSwitch }: AuthFormProps) => {
           {/* Confirm Password Field (Signup Mode Only) */}
           {mode === 'signup' && (
             <div>
-              <label htmlFor="confirmPassword" className="block text-xs font-medium text-gray-300 mb-1.5">
+              <label htmlFor="confirmPassword" className="block text-xs font-medium text-forge-ink mb-1.5">
                 Confirm Password
               </label>
               <div className="relative">
@@ -251,17 +248,17 @@ export const AuthForm = ({ mode, onSwitch }: AuthFormProps) => {
                   onBlur={() => setTouched((prev) => ({ ...prev, confirmPassword: true }))}
                   aria-invalid={Boolean(confirmPasswordError)}
                   aria-describedby={confirmPasswordError ? 'confirm-password-error' : undefined}
-                  className={`w-full bg-gray-800 border rounded-lg pl-3.5 pr-10 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none transition-colors ${
+                  className={`w-full bg-white border rounded-md pl-3.5 pr-10 py-2.5 text-sm text-forge-ink placeholder-stone-400 focus:outline-none transition-colors ${
                     confirmPasswordError
-                      ? 'border-red-500/80 focus:ring-1 focus:ring-red-500'
-                      : 'border-gray-700 focus:ring-1 focus:ring-violet-500 focus:border-violet-500'
+                      ? 'border-red-600 focus:ring-1 focus:ring-red-600'
+                      : 'border-forge-line focus:ring-1 focus:ring-forge-ink focus:border-forge-ink'
                   }`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword((prev) => !prev)}
                   aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-forge-muted hover:text-forge-ink transition-colors p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ink"
                 >
                   {showConfirmPassword ? (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,7 +294,7 @@ export const AuthForm = ({ mode, onSwitch }: AuthFormProps) => {
           <button
             type="submit"
             disabled={!isFormValid || isLoading}
-            className="w-full py-2.5 px-4 text-sm font-medium text-white bg-linear-to-r from-violet-600 to-indigo-600 rounded-lg hover:from-violet-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-violet-600/20 active:scale-[0.99]"
+            className="w-full py-2.5 px-4 text-sm font-medium text-white bg-forge-ink rounded-md hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ink"
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
@@ -313,13 +310,13 @@ export const AuthForm = ({ mode, onSwitch }: AuthFormProps) => {
         </form>
 
         {/* Mode Switch Footer */}
-        <div className="pt-2 border-t border-gray-800 text-center">
-          <p className="text-xs text-gray-400">
+        <div className="pt-2 border-t border-forge-line text-center">
+          <p className="text-xs text-forge-muted">
             {mode === 'signup' ? 'Already have an account?' : "Don't have an account?"}{' '}
             <button
               type="button"
               onClick={handleSwitch}
-              className="text-violet-400 hover:text-violet-300 font-medium transition-colors cursor-pointer ml-1"
+              className="text-forge-ink hover:underline font-medium transition-colors cursor-pointer ml-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge-ink"
             >
               {mode === 'signup' ? 'Sign in' : 'Sign up'}
             </button>
