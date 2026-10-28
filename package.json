@@ -12,5 +12,8 @@
   },
   "devDependencies": {
     "turbo": "latest"
+  },
+  "prisma": {
+    "schema": "apps/api/prisma/schema.prisma"
   }
 }
