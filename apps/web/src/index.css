@@ -3,26 +3,67 @@
 
 @theme {
   --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --color-forge-bg: #f6f3ee;
+  --color-forge-paper: #fffcf8;
+  --color-forge-ink: #1c1917;
+  --color-forge-muted: #514c46;
+  --color-forge-faint: #5c564e;
+  --color-forge-line: #e3dbd1;
+  --color-forge-accent: #9a3412;
 }
 
 body {
   margin: 0;
+  background: #f6f3ee;
+  color: #1c1917;
+  color-scheme: light;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* custom scrollbar for dark theme */
-::-webkit-scrollbar {
+.landing-page section[id] {
+  scroll-margin-top: 5.5rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.landing-active {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.landing-active {
+    scroll-behavior: auto;
+  }
+
+  .landing-page *,
+  .landing-page *::before,
+  .landing-page *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.workspace-shell,
+.workspace-shell * {
+  scrollbar-color: #cfc6ba #f6f3ee;
+}
+
+.workspace-shell::-webkit-scrollbar,
+.workspace-shell *::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
-::-webkit-scrollbar-track {
-  background: #1a1a2e;
+.workspace-shell::-webkit-scrollbar-track,
+.workspace-shell *::-webkit-scrollbar-track {
+  background: #f6f3ee;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #4a4a6a;
-  border-radius: 4px;
+.workspace-shell::-webkit-scrollbar-thumb,
+.workspace-shell *::-webkit-scrollbar-thumb {
+  background: #cfc6ba;
 }
 
 @keyframes checkmark-pop {
