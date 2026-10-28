@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "build:api": "turbo run build --filter=api",
+    "build:web": "turbo run build --filter=web",
+    "db:deploy": "pnpm --filter api db:deploy",
     "lint": "turbo lint",
     "test": "turbo test",
     "benchmark": "pnpm --filter api benchmark",
