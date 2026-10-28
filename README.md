@@ -1,6 +1,8 @@
-# AI Component Builder
+# ForgeAI
 
-AI-powered React component generator with real-time sandboxed preview, TypeScript AST validation, bounded self-repair, and persistent component library management.
+ForgeAI is an AI-powered React component builder. Describe a UI in plain language, generate React code with Gemini, preview it in a sandboxed browser view, and save components to your account.
+
+The app includes real-time sandboxed preview, TypeScript AST validation, bounded self-repair, and a per-user component library. Package names and API routes are unchanged from the original repository layout.
 
 ---
 
@@ -67,7 +69,7 @@ cd ../..
 ```bash
 pnpm dev
 ```
-- Frontend: `http://localhost:5173`
+- Frontend: `http://localhost:5173` — public landing page. Sign-in is `/login`, sign-up is `/signup`, and the component workspace is `/workspace`.
 - Backend API: `http://localhost:3001`
 
 ---
