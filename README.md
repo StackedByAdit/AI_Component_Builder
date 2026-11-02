@@ -1,5 +1,7 @@
 # ForgeAI
 
+![ForgeAI Preview](assets/hero-preview.png)
+
 ForgeAI is an AI-powered React component builder. Describe a UI in plain language, generate React code with Gemini, preview it in a sandboxed browser view, and save components to your account.
 
 The app includes real-time sandboxed preview, TypeScript AST validation, bounded self-repair, and a per-user component library. Package names and API routes are unchanged from the original repository layout.
